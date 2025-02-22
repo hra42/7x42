@@ -1,9 +1,9 @@
 ---
 name: Phase 1 Task
 about: Standard template for Phase 1 objectives
-title: '[Concise Task Name]'
-labels: 'phase1'
-assignees: 'hra42'
+title: "[Concise Task Name]"
+labels: chat
+assignees: hra42
 
 ---
 
