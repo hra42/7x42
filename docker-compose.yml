@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_USER=7x42user
+      - DB_PASSWORD=7x42pass
+      - DB_NAME=7x42db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=7x42user
+      - POSTGRES_PASSWORD=7x42pass
+      - POSTGRES_DB=7x42db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
