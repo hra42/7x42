@@ -74,7 +74,7 @@
 
 ### **6. Frontend**
 - Little JavaScript to keep the site performant
-- HTMX + Alpine.JS
+- HTMX + Alpine.js
   - This decision is final
 - Tailwind CSS for Styling
 - Dark Design only
