@@ -1,17 +1,22 @@
 package server
 
 import (
+	"errors"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	fiberwebsocket "github.com/gofiber/websocket/v2"
+	"github.com/hra42/7x42/internal/websocket"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Server struct {
-	app *fiber.App
-	db  *gorm.DB
+	app       *fiber.App
+	db        *gorm.DB
+	wsManager *websocket.Manager
 }
 
 type Config struct {
@@ -19,15 +24,11 @@ type Config struct {
 }
 
 func New(config *Config) *Server {
-	// Initialize Fiber with proper configuration
 	app := fiber.New(fiber.Config{
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  5 * time.Minute,
-		// Customize error handling
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
+			var e *fiber.Error
+			if errors.As(err, &e) {
 				code = e.Code
 			}
 			return c.Status(code).JSON(fiber.Map{
@@ -36,77 +37,72 @@ func New(config *Config) *Server {
 		},
 	})
 
-	// Initialize server instance
+	wsManager := websocket.NewManager()
+	wsManager.Start()
+
 	s := &Server{
-		app: app,
-		db:  config.DB,
+		app:       app,
+		db:        config.DB,
+		wsManager: wsManager,
 	}
 
-	// Setup middleware
 	s.setupMiddleware()
-	// Setup routes
 	s.setupRoutes()
-
 	return s
 }
 
 func (s *Server) setupMiddleware() {
-	// Add logger middleware
 	s.app.Use(logger.New(logger.Config{
-		Format:     "${time} | ${status} | ${latency} | ${method} | ${path}\n",
-		TimeFormat: "2006-01-02 15:04:05",
-		TimeZone:   "Local",
+		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
 	}))
-
-	// Add recovery middleware
 	s.app.Use(recover.New())
-
-	// Add CORS middleware
 	s.app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 }
 
 func (s *Server) setupRoutes() {
-	// Health check endpoint
 	s.app.Get("/health", s.handleHealthCheck)
 
-	// API routes group
 	api := s.app.Group("/api")
 	v1 := api.Group("/v1")
-
-	// Chat routes will be added here in the WebSocket task
 	chat := v1.Group("/chat")
 	chat.Get("/", s.handleListChats)
-	// More routes will be added later
 
-	// Serve static files
 	s.app.Static("/", "./web/static")
-
-	// Serve the main chat interface
 	s.app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendFile("./web/templates/chat.html")
 	})
+
+	s.app.Use("/ws", func(c *fiber.Ctx) error {
+		if fiberwebsocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+
+	s.app.Get("/ws/:userId", fiberwebsocket.New(func(c *fiberwebsocket.Conn) {
+		userId := c.Params("userId")
+		s.wsManager.HandleConnection(c, userId)
+	}))
 }
 
 func (s *Server) handleHealthCheck(c *fiber.Ctx) error {
-	// Check database connection
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Database connection error",
+			"status": "error",
+			"error":  err.Error(),
 		})
 	}
 
-	// Ping database
 	err = sqlDB.Ping()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "error",
-			"message": "Database ping failed",
+			"status": "error",
+			"error":  err.Error(),
 		})
 	}
 
@@ -117,9 +113,8 @@ func (s *Server) handleHealthCheck(c *fiber.Ctx) error {
 }
 
 func (s *Server) handleListChats(c *fiber.Ctx) error {
-	// This is a placeholder that will be implemented in the WebSocket task
 	return c.JSON(fiber.Map{
-		"message": "Chat listing endpoint - to be implemented",
+		"chats": []string{},
 	})
 }
 
