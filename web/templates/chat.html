@@ -1,0 +1,31 @@
+<!-- web/templates/chat.html -->
+<script>
+    function connectWebSocket(userId) {
+        const ws = new WebSocket(`ws://${window.location.host}/ws/${userId}`);
+
+        ws.onopen = () => {
+            console.log('Connected to WebSocket');
+        };
+
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            // Handle incoming message
+            console.log('Received message:', message);
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from WebSocket');
+            // Implement reconnection logic here
+            setTimeout(() => connectWebSocket(userId), 1000);
+        };
+
+        // Handle ping/pong
+        setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "ping" }));
+            }
+        }, 30000);
+
+        return ws;
+    }
+</script>
