@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o main ./cmd/server
 
 # Final stage
-FROM alpine:3.18
+FROM alpine:3.21
 
 WORKDIR /app
 
