@@ -7,8 +7,9 @@ import (
 
 func AutoMigrate(db *gorm.DB) error {
 	// Enable PostgreSQL extensions
-	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
-
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
+		return err
+	}
 	// Run migrations
 	return db.AutoMigrate(
 		&models.Chat{},
