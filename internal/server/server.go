@@ -27,27 +27,6 @@ type Config struct {
 	DB *gorm.DB
 }
 
-// validateAndConvertID safely converts a uint64 to uint, checking for overflow
-func validateAndConvertID(id uint64) (uint, error) {
-	// Define max uint value based on architecture
-	var maxValue uint64
-
-	// Determine if we're on a 32-bit or 64-bit system
-	const maxUint32 = 1<<32 - 1 // 4,294,967,295
-	const maxUint64 = 1<<64 - 1
-
-	// Use 32-bit max for maximum compatibility
-	maxValue = maxUint32
-
-	if id > maxValue {
-		return 0, errors.New("ID value out of range")
-	}
-
-	// Now the conversion is safe
-	safeID := uint(id)
-	return safeID, nil
-}
-
 func New(config *Config) *Server {
 	viewEngine := html.New("./web/templates", ".html")
 	app := fiber.New(fiber.Config{
@@ -251,18 +230,12 @@ func (s *Server) handleGetChat(c *fiber.Ctx) error {
 		})
 	}
 
-	id, err := validateAndConvertID(chatID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Chat ID out of range",
-		})
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	chatRepo := repository.NewChatRepository(s.db)
-	chat, err := chatRepo.GetChat(ctx, id)
+	// Use uint64 directly - no conversion needed
+	chat, err := chatRepo.GetChat(ctx, chatID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -301,13 +274,6 @@ func (s *Server) handleSendMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	id, err := validateAndConvertID(chatID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Chat ID out of range",
-		})
-	}
-
 	// Parse request body
 	var request struct {
 		Content string `json:"content"`
@@ -323,7 +289,7 @@ func (s *Server) handleSendMessage(c *fiber.Ctx) error {
 	message := &models.Message{
 		Content:   request.Content,
 		Role:      "user",
-		ChatID:    id,
+		ChatID:    chatID, // Use uint64 directly - no conversion needed
 		Timestamp: time.Now(),
 	}
 
