@@ -29,10 +29,23 @@ type Config struct {
 
 // validateAndConvertID safely converts a uint64 to uint, checking for overflow
 func validateAndConvertID(id uint64) (uint, error) {
-	if id > uint64(^uint(0)) {
+	// Define max uint value based on architecture
+	var maxValue uint64
+
+	// Determine if we're on a 32-bit or 64-bit system
+	const maxUint32 = 1<<32 - 1 // 4,294,967,295
+	const maxUint64 = 1<<64 - 1
+
+	// Use 32-bit max for maximum compatibility
+	maxValue = maxUint32
+
+	if id > maxValue {
 		return 0, errors.New("ID value out of range")
 	}
-	return uint(id), nil
+
+	// Now the conversion is safe
+	safeID := uint(id)
+	return safeID, nil
 }
 
 func New(config *Config) *Server {
