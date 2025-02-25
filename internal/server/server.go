@@ -27,6 +27,14 @@ type Config struct {
 	DB *gorm.DB
 }
 
+// validateAndConvertID safely converts a uint64 to uint, checking for overflow
+func validateAndConvertID(id uint64) (uint, error) {
+	if id > uint64(^uint(0)) {
+		return 0, errors.New("ID value out of range")
+	}
+	return uint(id), nil
+}
+
 func New(config *Config) *Server {
 	viewEngine := html.New("./web/templates", ".html")
 	app := fiber.New(fiber.Config{
@@ -230,11 +238,18 @@ func (s *Server) handleGetChat(c *fiber.Ctx) error {
 		})
 	}
 
+	id, err := validateAndConvertID(chatID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Chat ID out of range",
+		})
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	chatRepo := repository.NewChatRepository(s.db)
-	chat, err := chatRepo.GetChat(ctx, uint(chatID))
+	chat, err := chatRepo.GetChat(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -273,6 +288,13 @@ func (s *Server) handleSendMessage(c *fiber.Ctx) error {
 		})
 	}
 
+	id, err := validateAndConvertID(chatID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Chat ID out of range",
+		})
+	}
+
 	// Parse request body
 	var request struct {
 		Content string `json:"content"`
@@ -288,7 +310,7 @@ func (s *Server) handleSendMessage(c *fiber.Ctx) error {
 	message := &models.Message{
 		Content:   request.Content,
 		Role:      "user",
-		ChatID:    uint(chatID),
+		ChatID:    id,
 		Timestamp: time.Now(),
 	}
 
