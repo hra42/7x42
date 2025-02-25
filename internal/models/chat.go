@@ -54,12 +54,12 @@ type Message struct {
 	Metadata  MessageMetadata `gorm:"type:jsonb"`
 }
 
-func (m *Message) BeforeCreate() error {
+func (m *Message) BeforeCreate(tx *gorm.DB) error {
 	m.Timestamp = time.Now()
 	return nil
 }
 
-func (c *Chat) BeforeCreate() error {
+func (c *Chat) BeforeCreate(tx *gorm.DB) error {
 	c.LastMessage = time.Now()
 	return nil
 }
