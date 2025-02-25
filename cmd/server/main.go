@@ -6,21 +6,23 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/hra42/7x42/internal/ai"
 	"github.com/hra42/7x42/internal/database"
 	"github.com/hra42/7x42/internal/server"
 )
 
 func main() {
-	// Initialize database connection
+	// Database configuration
 	dbConfig := &database.Config{
-		Host:     os.Getenv("DB_HOST"),
-		User:     os.Getenv("DB_USER"),
-		Password: os.Getenv("DB_PASSWORD"),
-		DBName:   os.Getenv("DB_NAME"),
-		Port:     os.Getenv("DB_PORT"),
-		SSLMode:  "disable",
+		Host:     getEnv("DB_HOST", "localhost"),
+		User:     getEnv("DB_USER", "7x42user"),
+		Password: getEnv("DB_PASSWORD", "7x42pass"),
+		DBName:   getEnv("DB_NAME", "7x42db"),
+		Port:     getEnv("DB_PORT", "5432"),
+		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 
+	// Connect to database
 	db, err := database.NewConnection(dbConfig)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -31,15 +33,21 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
+	// Initialize AI service
+	aiService, err := ai.NewService(db)
+	if err != nil {
+		log.Fatal("Failed to initialize AI service:", err)
+	}
+
 	// Initialize server
 	app := server.New(&server.Config{
-		DB: db,
+		DB:        db,
+		AIService: aiService,
 	})
 
-	// Setup graceful shutdown
+	// Handle graceful shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
 	go func() {
 		<-c
 		log.Println("Gracefully shutting down...")
@@ -49,8 +57,17 @@ func main() {
 	}()
 
 	// Start server
-	log.Println("Server starting on :8080")
-	if err := app.Listen(":8080"); err != nil {
+	port := getEnv("PORT", "8080")
+	log.Println("Server starting on :" + port)
+	if err := app.Listen(":" + port); err != nil {
 		log.Fatal("Server error:", err)
 	}
+}
+
+// Helper function to get environment variable with fallback
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
 }
