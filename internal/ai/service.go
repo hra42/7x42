@@ -28,7 +28,7 @@ func NewService(db *gorm.DB) (*Service, error) {
 	// Default model if not specified
 	model := os.Getenv("OPENROUTER_MODEL")
 	if model == "" {
-		model = "openai/gpt-4o"
+		model = "google/gemini-2.0-flash-001"
 	}
 
 	openRouter, err := NewOpenRouterClient(Config{
