@@ -118,7 +118,6 @@ func (c *OpenRouterClient) makeDirectRequest(ctx context.Context, jsonBody map[s
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Title", "7x42 Chat")
 	req.Header.Set("HTTP-Referer", "https://7x42.net")
-	req.Header.Set("source_code_url", "https://github.com/hra42/7x42")
 
 	client := &http.Client{Timeout: time.Second * 60}
 	resp, err := client.Do(req)
@@ -198,7 +197,6 @@ func (c *OpenRouterClient) StreamResponse(ctx context.Context, wsConn *websocket
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("X-Title", "7x42 Chat")
 	req.Header.Set("HTTP-Referer", "https://7x42.net")
-	req.Header.Set("SOURCE-CODE-URL", "https://github.com/hra42/7x42")
 
 	client := &http.Client{Timeout: time.Second * 120}
 	resp, err := client.Do(req)
