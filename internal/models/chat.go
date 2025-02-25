@@ -39,7 +39,7 @@ func (m *MessageMetadata) Scan(value interface{}) error {
 		return errors.New("type assertion to []byte failed")
 	}
 
-	return json.Unmarshal(bytes, &m)
+	return json.Unmarshal(bytes, m)
 }
 
 type Message struct {
