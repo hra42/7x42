@@ -151,7 +151,7 @@
                         this.messagesLoading = false;
                     });
             },
-
+            
             connectWebSocket() {
                 if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
                     return; // Already connected or connecting
@@ -167,28 +167,47 @@
 
                 this.ws.onmessage = (event) => {
                     const message = JSON.parse(event.data);
+
                     if (message.type === 'chat_message') {
-                        const chatMessage = JSON.parse(message.content);
-                        this.messages.push({
-                            role: 'assistant',
-                            content: chatMessage.content,
-                            timestamp: new Date(chatMessage.timestamp)
-                        });
-                        this.isTyping = false;
-                        this.scrollToBottom();
+                        if (message.content) {
+                            // Handle streaming chunks
+                            const chatMessage = message.content;
+
+                            // If this is the first chunk of a response, create a new message
+                            if (this.isTyping) {
+                                this.isTyping = false;
+                                this.messages.push({
+                                    role: 'assistant',
+                                    content: chatMessage.content || '',
+                                    timestamp: new Date(chatMessage.timestamp)
+                                });
+                            } else if (chatMessage.content) {
+                                // Append to the last message for streaming updates
+                                const lastMessage = this.messages[this.messages.length - 1];
+                                if (lastMessage && lastMessage.role === 'assistant') {
+                                    lastMessage.content += chatMessage.content;
+                                }
+                            }
+
+                            this.scrollToBottom();
+                        } else if (message.metadata && message.metadata.complete) {
+                            // Message is complete, can update UI if needed
+                            console.log('Message complete, processing time:', message.metadata.processingTime);
+                            this.isLoading = false;
+                        }
                     } else if (message.type === 'typing') {
                         this.isTyping = true;
                         this.scrollToBottom();
+                    } else if (message.type === 'pong') {
+                        // Received pong from server
                     }
                 };
 
                 this.ws.onclose = (event) => {
                     console.log(`WebSocket closed: ${event.code} ${event.reason}`);
-
                     // Implement exponential backoff for reconnection
                     const delay = Math.min(1000 * Math.pow(1.5, this.reconnectAttempts), 10000);
                     this.reconnectAttempts++;
-
                     console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
                     setTimeout(() => this.connectWebSocket(), delay);
                 };
@@ -204,7 +223,6 @@
                     }
                 }, 30000);
             },
-
             sendMessage() {
                 if (!this.newMessage.trim() || this.isLoading) return;
 
