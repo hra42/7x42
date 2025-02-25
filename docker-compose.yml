@@ -11,10 +11,14 @@ services:
       - DB_PASSWORD=7x42pass
       - DB_NAME=7x42db
       - DB_PORT=5432
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-google/gemini-2.0-flash-001}
     depends_on:
       db:
         condition: service_healthy
     restart: on-failure
+    volumes:
+      - ./web:/app/web
 
   db:
     image: postgres:17-alpine
@@ -31,6 +35,5 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
 volumes:
   postgres_data:
