@@ -20,7 +20,7 @@ func (r *ChatRepository) CreateChat(ctx context.Context, chat *models.Chat) erro
 }
 
 // GetChat retrieves a chat by ID with its messages
-func (r *ChatRepository) GetChat(ctx context.Context, id uint) (*models.Chat, error) {
+func (r *ChatRepository) GetChat(ctx context.Context, id uint64) (*models.Chat, error) {
 	var chat models.Chat
 	err := r.db.WithContext(ctx).
 		Preload("Messages", func(db *gorm.DB) *gorm.DB {

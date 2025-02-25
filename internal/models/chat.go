@@ -17,7 +17,7 @@ type Message struct {
 	gorm.Model
 	Content   string    `gorm:"type:text;not null"`
 	Role      string    `gorm:"type:varchar(20);not null;check:role IN ('user', 'assistant')"`
-	ChatID    uint      `gorm:"index;not null"`
+	ChatID    uint64    `gorm:"index;not null"`
 	Timestamp time.Time `gorm:"index;not null;default:CURRENT_TIMESTAMP"`
 	Metadata  string    `gorm:"type:jsonb"` // For storing additional AI-related metadata
 }
