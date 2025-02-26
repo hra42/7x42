@@ -53,7 +53,6 @@ func (c *Client) streamAPIResponse(ctx context.Context, wsConn *websocket.Conn, 
 // processStreamResponse handles the streaming response data
 func (c *Client) processStreamResponse(responseBody io.ReadCloser, wsConn *websocket.Conn) (string, error) {
 	reader := bufio.NewReaderSize(responseBody, 32*1024)
-	var buffer string
 	var fullContent string
 
 	for {
