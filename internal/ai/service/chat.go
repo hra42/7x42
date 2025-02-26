@@ -51,7 +51,8 @@ func (s *Service) saveUserMessage(ctx context.Context, chatID uint, content stri
 		Metadata:  models.MessageMetadata{},
 	}
 
-	return s.chatRepo.CreateMessage(ctx, userMsg)
+	// Use messageRepo instead of chatRepo
+	return s.messageRepo.CreateMessage(ctx, userMsg)
 }
 
 // getOrCreateChat gets an existing chat or creates a new one if it doesn't exist
@@ -120,18 +121,19 @@ func (s *Service) generateResponse(ctx context.Context, chatID uint, content str
 		return fmt.Errorf("failed to generate response: %w", err)
 	}
 
-	// Save AI response to database
 	aiMsg := &models.Message{
 		ChatID:    uint64(chatID),
 		Content:   response,
 		Role:      "assistant",
 		Timestamp: time.Now(),
 		Metadata: models.MessageMetadata{
-			Model: s.config.Model,
+			Model:      s.config.Model,
+			TokenCount: len(response) / 4,
 		},
 	}
 
-	return s.chatRepo.CreateMessage(ctx, aiMsg)
+	// Use messageRepo instead of chatRepo
+	return s.messageRepo.CreateMessage(ctx, aiMsg)
 }
 
 // convertMessagesToOpenRouterFormat converts database messages to OpenRouter format

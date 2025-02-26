@@ -24,7 +24,8 @@ type Config struct {
 
 // Service is the main AI service that coordinates AI providers
 type Service struct {
-	openRouter *openrouter.Client
-	chatRepo   *repository.ChatRepository
-	config     Config
+	openRouter  *openrouter.Client
+	chatRepo    *repository.ChatRepository
+	messageRepo *repository.MessageRepository
+	config      Config
 }

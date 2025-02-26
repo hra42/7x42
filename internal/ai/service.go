@@ -3,6 +3,7 @@ package ai
 import (
 	"github.com/gofiber/websocket/v2"
 	"github.com/hra42/7x42/internal/ai/service"
+	"github.com/hra42/7x42/internal/repository"
 	"gorm.io/gorm"
 )
 
@@ -26,4 +27,9 @@ func NewService(db *gorm.DB) (*Service, error) {
 // HandleChatMessage processes a chat message and generates a response
 func (s *Service) HandleChatMessage(wsConn *websocket.Conn, chatID uint, content string, userID string) error {
 	return s.service.HandleChatMessage(wsConn, chatID, content, userID)
+}
+
+// SetMessageRepository sets the message repository for the OpenRouter client
+func (s *Service) SetMessageRepository(repo *repository.MessageRepository) {
+	s.SetMessageRepository(repo)
 }

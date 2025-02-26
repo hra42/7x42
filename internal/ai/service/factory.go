@@ -14,28 +14,27 @@ func New(config Config) (*Service, error) {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Create chat repository
 	chatRepo := repository.NewChatRepository(config.DB)
+	messageRepo := repository.NewMessageRepository(config.DB)
 
-	// Create OpenRouter client
 	openRouterConfig := CreateOpenRouterConfig(config)
 	openRouterClient, err := openrouter.New(openRouterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OpenRouter client: %w", err)
 	}
 
-	// Initialize OpenRouter client
 	if err := openRouterClient.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize OpenRouter client: %w", err)
 	}
 
-	// Set chat repository for OpenRouter client
 	openRouterClient.SetChatRepository(chatRepo)
+	openRouterClient.SetMessageRepository(messageRepo)
 
 	return &Service{
-		openRouter: openRouterClient,
-		chatRepo:   chatRepo,
-		config:     config,
+		openRouter:  openRouterClient,
+		chatRepo:    chatRepo,
+		messageRepo: messageRepo,
+		config:      config,
 	}, nil
 }
 
