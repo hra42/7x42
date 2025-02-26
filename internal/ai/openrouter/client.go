@@ -14,12 +14,13 @@ import (
 
 // Client handles communication with the OpenRouter API
 type Client struct {
-	config     Config
-	mu         sync.RWMutex
-	isReady    bool
-	db         *gorm.DB
-	chatRepo   *repository.ChatRepository
-	httpClient *http.Client
+	config      Config
+	mu          sync.RWMutex
+	isReady     bool
+	db          *gorm.DB
+	chatRepo    *repository.ChatRepository
+	messageRepo *repository.MessageRepository // Add this field
+	httpClient  *http.Client
 }
 
 // New creates a new OpenRouter client with the given configuration
@@ -51,6 +52,11 @@ func (c *Client) Initialize() error {
 // SetChatRepository sets the repository for chat operations
 func (c *Client) SetChatRepository(repo *repository.ChatRepository) {
 	c.chatRepo = repo
+}
+
+// SetMessageRepository sets the message repository
+func (c *Client) SetMessageRepository(repo *repository.MessageRepository) {
+	c.messageRepo = repo
 }
 
 // GenerateResponse sends a prompt to OpenRouter and returns the response

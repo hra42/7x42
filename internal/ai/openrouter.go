@@ -31,3 +31,8 @@ func (c *OpenRouterClient) Initialize() error {
 func (c *OpenRouterClient) SetChatRepository(repo *repository.ChatRepository) {
 	c.client.SetChatRepository(repo)
 }
+
+// SetMessageRepository sets the message repository for the client
+func (c *OpenRouterClient) SetMessageRepository(repo *repository.MessageRepository) {
+	c.client.SetMessageRepository(repo)
+}

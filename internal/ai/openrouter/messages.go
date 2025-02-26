@@ -33,21 +33,21 @@ func (c *Client) extractChatID(prompt string) uint64 {
 	return 0
 }
 
-// saveMessage saves the AI response to the database
 func (c *Client) saveMessage(ctx context.Context, chatID uint64, content string, processingTime int) {
 	message := &models.Message{
+		ChatID:    chatID,
 		Content:   content,
 		Role:      "assistant",
-		ChatID:    chatID,
 		Timestamp: time.Now(),
 		Metadata: models.MessageMetadata{
 			Model:       c.config.Model,
-			TokenCount:  len(content) / 4, // Simple token estimation
+			TokenCount:  len(content) / 4,
 			ProcessTime: processingTime,
 		},
 	}
 
-	if err := c.chatRepo.CreateMessage(ctx, message); err != nil {
+	// Use messageRepo instead of chatRepo
+	if err := c.messageRepo.CreateMessage(ctx, message); err != nil {
 		log.Printf("Failed to save AI response: %v", err)
 	}
 }
