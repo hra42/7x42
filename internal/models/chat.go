@@ -1,14 +1,12 @@
 package models
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
 	"time"
 
 	"gorm.io/gorm"
 )
 
+// Chat represents a conversation between a user and the AI
 type Chat struct {
 	gorm.Model
 	Title       string    `gorm:"type:varchar(255);not null"`
@@ -17,49 +15,46 @@ type Chat struct {
 	UserID      string    `gorm:"type:varchar(255);index"`
 }
 
-type MessageMetadata struct {
-	Model       string `json:"model,omitempty"`
-	TokenCount  int    `json:"token_count,omitempty"`
-	ProcessTime int    `json:"process_time,omitempty"`
-}
-
-// Value implements the driver.Valuer interface for database serialization
-func (m MessageMetadata) Value() (driver.Value, error) {
-	return json.Marshal(m)
-}
-
-// Scan implements the sql.Scanner interface for database deserialization
-func (m *MessageMetadata) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-
-	return json.Unmarshal(bytes, m)
-}
-
-type Message struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt  `gorm:"index"`
-	Content   string          `gorm:"type:text;not null"`
-	Role      string          `gorm:"type:varchar(20);not null;check:role IN ('user', 'assistant')"`
-	ChatID    uint64          `gorm:"index;not null"`
-	Timestamp time.Time       `gorm:"index;not null;default:CURRENT_TIMESTAMP"`
-	Metadata  MessageMetadata `gorm:"type:jsonb"`
-}
-
-func (m *Message) BeforeCreate(tx *gorm.DB) error {
-	m.Timestamp = time.Now()
-	return nil
-}
-
+// BeforeCreate is a GORM hook that sets default values before creating a chat
 func (c *Chat) BeforeCreate(tx *gorm.DB) error {
-	c.LastMessage = time.Now()
+	// Set default LastMessage time if not set
+	if c.LastMessage.IsZero() {
+		c.LastMessage = time.Now()
+	}
 	return nil
+}
+
+// AddMessage adds a new message to the chat and updates LastMessage time
+func (c *Chat) AddMessage(message *Message) {
+	c.Messages = append(c.Messages, *message)
+	c.LastMessage = message.Timestamp
+}
+
+// GetRecentMessages returns the most recent n messages from the chat
+func (c *Chat) GetRecentMessages(limit int) []Message {
+	if len(c.Messages) <= limit {
+		return c.Messages
+	}
+	return c.Messages[len(c.Messages)-limit:]
+}
+
+// Summary returns a brief summary of the chat
+func (c *Chat) Summary() map[string]interface{} {
+	var lastMessageContent string
+	if len(c.Messages) > 0 {
+		lastMsg := c.Messages[len(c.Messages)-1]
+		if len(lastMsg.Content) > 50 {
+			lastMessageContent = lastMsg.Content[:50] + "..."
+		} else {
+			lastMessageContent = lastMsg.Content
+		}
+	}
+
+	return map[string]interface{}{
+		"id":           c.ID,
+		"title":        c.Title,
+		"lastMessage":  c.LastMessage,
+		"messageCount": len(c.Messages),
+		"preview":      lastMessageContent,
+	}
 }
