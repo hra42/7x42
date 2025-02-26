@@ -6,6 +6,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	fiberws "github.com/gofiber/websocket/v2"
+	"log"
+	"os"
+	"time"
 )
 
 // setupMiddleware configures the middleware for the server
@@ -28,8 +31,23 @@ func (s *Server) setupMiddleware() {
 		AllowCredentials: false,
 	}))
 
-	// Static file middleware
-	s.app.Static("/static", "./web/static")
+	// Serve static files with improved logging
+	s.app.Use("/static", func(c *fiber.Ctx) error {
+		// Log static file requests in development
+		if os.Getenv("GO_ENV") != "production" {
+			log.Printf("Static file requested: %s", c.Path())
+		}
+		return c.Next()
+	})
+
+	// Set up static file serving with proper configuration
+	s.app.Static("/static", "./web/static", fiber.Static{
+		Compress:      true,
+		ByteRange:     true,
+		Browse:        false,
+		CacheDuration: 24 * time.Hour,
+		MaxAge:        86400,
+	})
 }
 
 // WebSocketMiddleware is a middleware that upgrades the connection to WebSocket
