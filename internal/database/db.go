@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hra42/7x42/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -22,11 +23,10 @@ type Config struct {
 
 func NewConnection(config *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		config.Host, config.User, config.Password, config.DBName, config.Port, config.SSLMode,
 	)
 
-	// Configure GORM logger
 	gormLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
@@ -44,16 +44,35 @@ func NewConnection(config *Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Configure connection pool
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	// Set connection pool parameters
-	sqlDB.SetMaxIdleConns(10)           // Maximum number of idle connections
-	sqlDB.SetMaxOpenConns(100)          // Maximum number of open connections
-	sqlDB.SetConnMaxLifetime(time.Hour) // Maximum lifetime of a connection
+	// Configure connection pool
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Register model hooks
+	models.RegisterHooks(db)
+
+	return db, nil
+}
+
+// InitializeDatabase sets up the database connection and performs initial setup
+func InitializeDatabase(config *Config) (*gorm.DB, error) {
+	db, err := NewConnection(config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Run auto migrations
+	if err := AutoMigrate(db); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	log.Println("Database initialized successfully")
 
 	return db, nil
 }
